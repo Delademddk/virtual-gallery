@@ -1,69 +1,144 @@
-import Image from "next/image";
+import Link from "next/link";
+import { ArrowDown, ArrowUpRight } from "lucide-react";
+import Intro from "@/src/components/layout/Intro";
+import StudyCollection from "@/src/components/gallery/StudyCollection";
+import MotionRibbon from "@/src/components/layout/MotionRibbon";
+import {
+  MotionStory,
+  ScrollStatement,
+} from "@/src/components/layout/MotionStory";
+import AdmissionFinale from "@/src/components/layout/AdmissionFinale";
+import CollectionThemes from "@/src/components/layout/CollectionThemes";
+import CloserLook from "@/src/components/layout/CloserLook";
+import VisitGuide from "@/src/components/layout/VisitGuide";
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <>
+      <a className="skip-link" href="#collection">
+        Skip introduction
+      </a>
+      <header className="site-header cinematic-header">
+        <Link href="/" className="small-logo">
+          AZANIA®
+        </Link>
+        <span className="header-caption">
+          An independent perspective on art.
+        </span>
+        <nav aria-label="Main navigation">
+          <a href="#collection">Collection</a>
+          <a href="#themes">Discover</a>
+          <a href="#about">Our story</a>
+          <Link href="/gallery" className="entry-link">
+            Enter gallery <ArrowUpRight size={16} />
+          </Link>
+        </nav>
+      </header>
+      <main>
+        <Intro />
+        <section id="collection" className="collection section-wrap">
+          <div className="section-label">
+            <span>01 / THE COLLECTION</span>
+            <span>AN EXHIBITION IN THE MAKING</span>
+          </div>
+          <div className="section-heading">
+            <h2>
+              A different
+              <br />
+              <i>way of seeing.</i>
+            </h2>
+            <p>
+              A space for Ghanaian art, objects and the stories they carry. Our
+              first collection is taking shape.
+            </p>
+          </div>
+          <StudyCollection />
+        </section>
+        <MotionRibbon />
+        <CollectionThemes />
+        <MotionStory>
+          <div className="section-label">
+            <span>03 / THE IDEA</span>
+            <span>ROOTED IN CULTURE. OPEN TO EVERYONE.</span>
+          </div>
+          <div className="story-layout">
+            <span className="story-mark" aria-hidden="true">
+              A.
+            </span>
+            <div>
+              <ScrollStatement />
+              <p>
+                AZANIA is a virtual exhibition exploring Ghanaian art and
+                cultural heritage. We are bringing the experience of a gallery
+                into a space you can visit from anywhere.
+              </p>
+              <p>
+                Look closer. Take your time. Discover the people, materials and
+                ideas behind the work.
+              </p>
+              <a href="#visit" className="underlined-link">
+                Discover the space <ArrowUpRight size={18} />
+              </a>
+            </div>
+          </div>
+        </MotionStory>
+        <CloserLook />
+        <section id="visit" className="visit section-wrap">
+          <div className="section-label">
+            <span>05 / THE SPACE</span>
+            <span>FROM A SCREEN TO A SENSE OF PLACE</span>
+          </div>
+          <div className="visit-grid">
+            <div>
+              <h2>
+                Beyond
+                <br />
+                <i>the frame.</i>
+              </h2>
+              <p>
+                A view inside the gallery you can explore. Discover the team’s
+                Blender-built space, move between its displays and find your own
+                perspective.
+              </p>
+              <Link href="/gallery" className="pill-button">
+                Explore the room <ArrowUpRight size={20} />
+              </Link>
+            </div>
+            <Link
+              href="/gallery"
+              className="architecture-preview"
+              aria-label="Enter the actual 3D gallery"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+              <img
+                src="/images/gallery-interior.jpg"
+                alt="Rendered interior of the actual AZANIA gallery, showing skylights and exhibits on pedestals"
+                loading="lazy"
+              />
+              <span>
+                INSIDE THE GALLERY <ArrowUpRight size={20} />
+              </span>
+            </Link>
+          </div>
+        </section>
+        <VisitGuide />
+        <AdmissionFinale />
       </main>
-    </div>
+      <footer className="site-footer">
+        <Link href="/" className="small-logo">
+          AZANIA®
+        </Link>
+        <span>Ghanaian art & cultural heritage.</span>
+        <a
+          href="https://github.com/Delademddk/virtual-gallery"
+          target="_blank"
+          rel="noreferrer"
+        >
+          CSSD 315 / Group project <ArrowUpRight size={13} />
+        </a>
+        <a href="#top" aria-label="Back to top">
+          <ArrowDown className="turn-up" size={18} />
+        </a>
+      </footer>
+    </>
   );
 }
