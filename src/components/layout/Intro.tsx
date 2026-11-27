@@ -113,7 +113,7 @@ export default function Intro() {
       <div className="cinematic-stage">
         <div className="cinematic-canvas" aria-hidden="true">
           {failed ? (
-            <img src="/gallery-poster.svg" alt="" />
+            <img src="/images/gallery-interior.jpg" alt="" />
           ) : (
             <Scene
               progress={p}

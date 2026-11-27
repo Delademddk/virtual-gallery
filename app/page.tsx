@@ -96,8 +96,9 @@ export default function Home() {
                 <i>the frame.</i>
               </h2>
               <p>
-                A first look inside our gallery. Explore the team’s Blender room
-                model and the exhibition studies while the collection develops.
+                A view inside the gallery you can explore. Discover the team’s
+                Blender-built space, move between its displays and find your own
+                perspective.
               </p>
               <Link href="/gallery" className="pill-button">
                 Explore the room <ArrowUpRight size={20} />
@@ -106,14 +107,15 @@ export default function Home() {
             <Link
               href="/gallery"
               className="architecture-preview"
-              aria-label="Open the 3D room preview"
+              aria-label="Enter the actual 3D gallery"
             >
               <img
-                src="/gallery-poster.svg"
-                alt="Schematic perspective of the AZANIA gallery"
+                src="/images/gallery-interior.jpg"
+                alt="Rendered interior of the actual AZANIA gallery, showing skylights and exhibits on pedestals"
+                loading="lazy"
               />
               <span>
-                THE GALLERY / ROOM PREVIEW <ArrowUpRight size={20} />
+                INSIDE THE GALLERY <ArrowUpRight size={20} />
               </span>
             </Link>
           </div>

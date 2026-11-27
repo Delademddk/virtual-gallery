@@ -8,18 +8,22 @@ import { useScrollProgress } from "@/src/hooks/useScrollProgress";
 const details = [
   {
     title: "Surface",
-    heading: "Start with what you can see.",
-    text: "Follow the edges, repeated lines and areas of empty space. What does your eye return to? Give that detail a moment before moving on.",
-    scale: 1.65,
-    x: -9,
-    y: 8,
-    markerX: 62,
-    markerY: 38,
+    heading: "Follow the light across the surface.",
+    text: "Look at the folds of the headwrap, the face and the necklace. Notice how raised edges catch the light while recessed areas stay in shadow.",
+    image: "/images/exhibit-portrait.jpg",
+    alt: "Close view of the portrait bust from the AZANIA Blender gallery",
+    scale: 1.5,
+    x: 0,
+    y: 10,
+    markerX: 53,
+    markerY: 46,
   },
   {
     title: "Composition",
     heading: "See how it holds together.",
-    text: "Trace a line across the work. Notice where it stops, changes direction or crosses another form. Step back and see how those small decisions make a whole.",
+    text: "Follow the outline from the headwrap down to the shoulders. Notice the balance between the face, the jewellery and the empty space around the figure.",
+    image: "/images/exhibit-portrait.jpg",
+    alt: "Three-quarter render showing the complete portrait bust from the gallery",
     scale: 1,
     x: 0,
     y: 0,
@@ -28,13 +32,15 @@ const details = [
   },
   {
     title: "Context",
-    heading: "Ask what the image cannot tell you.",
-    text: "Who made it? What is it made from? What was it made for? A maker, a material and a story can open another way into a work.",
-    scale: 1.25,
-    x: 5,
-    y: -5,
-    markerX: 35,
-    markerY: 34,
+    heading: "Look at the setting, too.",
+    text: "See how the portrait is presented beneath the arch. The pedestal, lighting and surrounding space change how you encounter the form. Its maker and cultural background are still being researched.",
+    image: "/images/exhibit-portrait-context.jpg",
+    alt: "The same portrait bust on its pedestal beneath the arch in the actual gallery",
+    scale: 1,
+    x: 0,
+    y: 0,
+    markerX: 53,
+    markerY: 53,
   },
 ];
 
@@ -78,8 +84,10 @@ export default function CloserLook() {
         <div className="detail-visual">
           <div className="detail-image-window">
             <img
-              src="/studies/study-03.svg"
-              alt="Abstract line study, enlarged to examine its shapes and intersections"
+              src={detail.image}
+              alt={detail.alt}
+              width={1200}
+              height={1500}
               loading="lazy"
             />
             <span className="detail-reticle" aria-hidden="true">
@@ -87,8 +95,8 @@ export default function CloserLook() {
             </span>
           </div>
           <div className="detail-visual-footer">
-            <span>LINES OF CONNECTION</span>
-            <span>DESIGN STUDY / 003</span>
+            <span>PORTRAIT DISPLAY</span>
+            <span>FROM THE GALLERY MODEL</span>
           </div>
         </div>
         <div className="detail-reader">
@@ -116,8 +124,8 @@ export default function CloserLook() {
             <p>{detail.text}</p>
           </div>
           <p className="detail-source-note">
-            Illustrated with an original AZANIA design study. Final exhibit
-            research is in progress.
+            Rendered from the team’s 3D gallery. Exhibit identification and
+            historical context are being verified.
           </p>
         </div>
       </div>

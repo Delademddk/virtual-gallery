@@ -1,36 +1,79 @@
 "use client";
-import { Component, Suspense, useEffect, useMemo, type ReactNode } from "react";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, useGLTF, useTexture } from "@react-three/drei";
+import {
+  Component,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  type ReactNode,
+  type RefObject,
+} from "react";
+import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
+import { useTexture } from "@react-three/drei";
 import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { ASSETS, LOCAL_ASSETS } from "@/lib/assets";
+import type { TourStop, TravelRequest } from "./controls/tourStops";
+import RibbonSculpture from "./RibbonSculpture";
+import { FirstPerson, type NavigationInput } from "./controls/FirstPerson";
 import { studies } from "@/src/data/studies";
 
+// Development's hosted URL may be unavailable during team uploads. Keep the
+// matching repository export available without changing the shared remote URL.
+class GalleryAssetLoader extends GLTFLoader {
+  override load(
+    ...[url, onLoad, onProgress, onError]: Parameters<GLTFLoader["load"]>
+  ) {
+    super.load(url, onLoad, onProgress, (error) => {
+      if (url !== ASSETS.gallery) {
+        onError?.(error);
+        return;
+      }
+      super.load(LOCAL_ASSETS.gallery, onLoad, onProgress, onError);
+    });
+  }
+}
+
+export const galleryView: [number, number, number] = [2.7, 2.8, 6.6];
+export const galleryTarget: [number, number, number] = [-1.5, 2, -3];
+
 function GalleryModel() {
-  const { scene } = useGLTF("/models/gallery.glb");
+  const { scene } = useLoader(GalleryAssetLoader, ASSETS.gallery);
   const model = useMemo(() => {
     const clone = scene.clone(true);
     clone.traverse((node) => {
+      if (node instanceof THREE.Light) {
+        // Blender's exported candela values overwhelm the existing web daylight.
+        // Tune the preview clone only; retain the original GLB for team review.
+        node.intensity *= 0.002;
+        node.userData.azaniaBaseIntensity = node.intensity;
+      }
       if (!(node instanceof THREE.Mesh)) return;
-      node.castShadow = true;
+      // Clone materials so the homepage fade cannot mutate the loader cache.
+      const cloneMaterial = (material: THREE.Material) => material.clone();
+      node.material = Array.isArray(node.material)
+        ? node.material.map(cloneMaterial)
+        : cloneMaterial(node.material);
+      const materials = Array.isArray(node.material)
+        ? node.material
+        : [node.material];
+      node.castShadow = !materials.some(
+        (material) =>
+          material instanceof THREE.MeshPhysicalMaterial &&
+          material.transmission > 0,
+      );
       node.receiveShadow = true;
-      node.material = new THREE.MeshStandardMaterial({
-        color: node.name.includes("Floor")
-          ? "#b9b7af"
-          : node.name.includes("Trim") || node.name.includes("Beam")
-            ? "#77776f"
-            : "#efeee7",
-        roughness: node.name.includes("Floor") ? 0.55 : 0.85,
-      });
-      // Preview-only daylight opening. Final glass is Member 4's integration.
-      if (node.name.includes("Glass")) node.visible = false;
     });
     return clone;
   }, [scene]);
   useEffect(
     () => () => {
       model.traverse((node) => {
-        if (node instanceof THREE.Mesh)
-          (node.material as THREE.Material).dispose();
+        if (!(node instanceof THREE.Mesh)) return;
+        const materials = Array.isArray(node.material)
+          ? node.material
+          : [node.material];
+        materials.forEach((material) => material.dispose());
       });
     },
     [model],
@@ -53,6 +96,7 @@ function FramedStudy({
     <group
       position={position}
       rotation={rotation}
+      userData={{ studyIndex: index }}
       onClick={
         onSelect
           ? (event) => {
@@ -85,19 +129,19 @@ export function SceneContents({
       <GalleryModel />
       <FramedStudy
         index={0}
-        position={[-5.2, 2.25, -6.92]}
+        position={[-13, 2.25, -7.92]}
         onSelect={onSelect}
       />
-      <FramedStudy index={1} position={[0, 2.25, -6.92]} onSelect={onSelect} />
       <FramedStudy
-        index={2}
-        position={[5.2, 2.25, -6.92]}
+        index={1}
+        position={[-0.8, 2.25, -7.92]}
         onSelect={onSelect}
       />
+      <FramedStudy index={2} position={[8, 2.25, -7.92]} onSelect={onSelect} />
       <FramedStudy
         index={3}
-        position={[-9.92, 2.25, -1.5]}
-        rotation={[0, Math.PI / 2, 0]}
+        position={[4.16, 2.25, -0.5]}
+        rotation={[0, -Math.PI / 2, 0]}
         onSelect={onSelect}
       />
       <mesh position={[1.5, 0.65, -0.5]} castShadow receiveShadow>
@@ -105,17 +149,8 @@ export function SceneContents({
         <meshStandardMaterial color="#e2e0d7" roughness={0.8} />
       </mesh>
       {showSculpture && (
-        <mesh
-          position={[1.5, 1.95, -0.5]}
-          rotation={[0.25, 0, -0.35]}
-          castShadow
-        >
-          <torusKnotGeometry args={[0.46, 0.14, 96, 12]} />
-          <meshStandardMaterial
-            color="#343631"
-            metalness={0.55}
-            roughness={0.3}
-          />
+        <mesh position={[1.5, 1.95, -0.5]} rotation={[0, -0.2, 0]} castShadow>
+          <RibbonSculpture />
         </mesh>
       )}
     </>
@@ -126,12 +161,12 @@ function CameraPath({ progress }: { progress: number }) {
   const target = useMemo(() => new THREE.Vector3(), []);
   useFrame((_, delta) => {
     target.set(
-      7.1 - progress * 5.8,
-      2.8 - progress * 0.9,
-      5.8 - progress * 2.7,
+      galleryView[0] - progress * 1.4,
+      galleryView[1] - progress * 0.9,
+      galleryView[2] - progress * 2.7,
     );
     camera.position.lerp(target, 1 - Math.exp(-delta * 4));
-    camera.lookAt(-2 + progress * 2, 1.9, -5);
+    camera.lookAt(...galleryTarget);
   });
   return null;
 }
@@ -171,6 +206,16 @@ export default function GalleryScene({
   onReady,
   onSelect,
   onFailure,
+  walking = false,
+  input,
+  onPause,
+  resetKey = 0,
+  travel,
+  touring,
+  onCatalog,
+  onArrive,
+  onTravelError,
+  onPosition,
 }: {
   progress?: number;
   active?: boolean;
@@ -178,14 +223,25 @@ export default function GalleryScene({
   onReady?: () => void;
   onSelect?: (index: number) => void;
   onFailure?: () => void;
+  walking?: boolean;
+  input?: RefObject<NavigationInput>;
+  onPause?: () => void;
+  resetKey?: number;
+  travel?: TravelRequest | null;
+  touring?: boolean;
+  onCatalog?: (stops: TourStop[]) => void;
+  onArrive?: (stopId: string, kind: TravelRequest["kind"]) => void;
+  onTravelError?: (message: string) => void;
+  onPosition?: (position: [number, number, number]) => void;
 }) {
+  const world = useRef<THREE.Group>(null);
   return (
     <SceneBoundary onFailure={onFailure}>
       <Canvas
         shadows
         dpr={[1, 1.5]}
-        frameloop={active ? "always" : "never"}
-        camera={{ position: [7.1, 2.8, 5.8], fov: 65, near: 0.1, far: 80 }}
+        frameloop={active ? "always" : "demand"}
+        camera={{ position: galleryView, fov: 65, near: 0.1, far: 80 }}
         gl={{ antialias: true, alpha: false }}
         fallback={
           <div>
@@ -211,21 +267,30 @@ export default function GalleryScene({
           shadow-bias={-0.001}
         />
         <Suspense fallback={null}>
-          <SceneContents onSelect={active ? onSelect : undefined} />
-          <Loaded onReady={onReady} />
+          <group ref={world}>
+            <SceneContents onSelect={active ? onSelect : undefined} />
+          </group>
+          {interactive && input && onPause ? (
+            <FirstPerson
+              world={world}
+              input={input}
+              walking={walking && active}
+              onPause={onPause}
+              onReady={onReady}
+              onSelect={onSelect}
+              resetKey={resetKey}
+              travel={travel}
+              touring={touring}
+              onCatalog={onCatalog}
+              onArrive={onArrive}
+              onTravelError={onTravelError}
+              onPosition={onPosition}
+            />
+          ) : (
+            <Loaded onReady={onReady} />
+          )}
         </Suspense>
-        {interactive ? (
-          <OrbitControls
-            enabled={active}
-            target={[-1, 1.7, -2]}
-            minDistance={2}
-            maxDistance={12}
-            maxPolarAngle={Math.PI / 2 - 0.03}
-            enablePan={false}
-          />
-        ) : (
-          <CameraPath progress={progress} />
-        )}
+        {!interactive && <CameraPath progress={progress} />}
       </Canvas>
     </SceneBoundary>
   );

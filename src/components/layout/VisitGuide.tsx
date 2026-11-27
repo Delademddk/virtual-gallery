@@ -13,7 +13,7 @@ const steps = [
   },
   {
     title: "Find your angle",
-    text: "Drag to rotate the view. Scroll with a mouse or pinch on a touch screen to move closer.",
+    text: "Use WASD or arrow keys to walk and your mouse to look. On a phone, hold a direction and drag the scene to look around.",
     icon: Move,
   },
   {
@@ -26,12 +26,12 @@ const questions = [
   {
     question: "What can I do in the current preview?",
     answer:
-      "Explore the 3D room by rotating and zooming, and select the framed design studies to open their information panels. First-person walking and audio guides are planned for a later stage.",
+      "Walk through the gallery with WASD or touch controls. Walls and exhibits block your path. Select a prototype frame to open its information panel. Audio guides are still planned.",
   },
   {
     question: "Can I visit on my phone?",
     answer:
-      "The room preview has touch controls: drag with one finger to rotate, and pinch to zoom. A laptop gives you a larger view of the space. Performance depends on your device and browser.",
+      "Hold the on-screen directional controls to walk and drag the scene with another finger to look. Use Pause to stop. Performance depends on your device and browser.",
   },
   {
     question: "Do I need a ticket or an account?",

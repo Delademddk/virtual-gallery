@@ -2,9 +2,15 @@
 
 import { Suspense, useEffect, useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import RibbonSculpture from "./RibbonSculpture";
 import { Environment, Lightformer } from "@react-three/drei";
 import * as THREE from "three";
-import { SceneBoundary, SceneContents } from "./GalleryScene";
+import {
+  SceneBoundary,
+  SceneContents,
+  galleryView,
+  galleryTarget,
+} from "./GalleryScene";
 
 function Ready({ onReady }: { onReady: () => void }) {
   useEffect(onReady, [onReady]);
@@ -49,14 +55,18 @@ function Choreography({
     const reveal = THREE.MathUtils.smoothstep(p, 0.57, 0.95);
     const mobile = size.width < 600;
     vectors.position.set(
-      THREE.MathUtils.lerp(1.5, 7.1, reveal),
-      THREE.MathUtils.lerp(2.2, 2.8, reveal),
-      THREE.MathUtils.lerp(mobile ? 5.9 : 4.7, 5.8, reveal),
+      THREE.MathUtils.lerp(1.5, galleryView[0], reveal),
+      THREE.MathUtils.lerp(2.2, galleryView[1], reveal),
+      THREE.MathUtils.lerp(mobile ? 5.9 : 4.7, galleryView[2], reveal),
     );
     vectors.look.set(
-      THREE.MathUtils.lerp(mobile ? 1.5 : 0.6, -2, reveal),
-      THREE.MathUtils.lerp(2.05, 1.9, reveal),
-      THREE.MathUtils.lerp(-0.5, -5, reveal),
+      THREE.MathUtils.lerp(
+        mobile ? 1.5 : 0.6,
+        mobile ? 1.5 : galleryTarget[0],
+        reveal,
+      ),
+      THREE.MathUtils.lerp(2.05, galleryTarget[1], reveal),
+      THREE.MathUtils.lerp(-0.5, mobile ? -0.5 : galleryTarget[2], reveal),
     );
     camera.position.copy(vectors.position);
     camera.lookAt(vectors.look);
@@ -65,9 +75,9 @@ function Choreography({
       .lerp(vectors.bright, reveal);
     if (sculpture.current) {
       sculpture.current.rotation.set(
-        0.25 + Math.sin(p * Math.PI) * 0.35,
-        p * Math.PI * 2,
-        -0.35 + Math.sin(p * Math.PI) * 0.25,
+        Math.sin(p * Math.PI) * 0.16,
+        p * Math.PI * 2 - 0.2,
+        Math.sin(p * Math.PI) * 0.12,
       );
       sculpture.current.scale.setScalar(
         THREE.MathUtils.lerp(
@@ -84,18 +94,26 @@ function Choreography({
     if (room.current && Math.abs(lastOpacity.current - reveal) > 0.001) {
       room.current.visible = reveal > 0.001;
       room.current.traverse((node) => {
+        if (node instanceof THREE.Light) {
+          node.intensity = node.userData.azaniaBaseIntensity * reveal;
+        }
         if (!(node instanceof THREE.Mesh)) return;
         const materials = Array.isArray(node.material)
           ? node.material
           : [node.material];
         materials.forEach((material) => {
-          const transparent = reveal < 0.999;
+          const original = (material.userData.azaniaFade ??= {
+            transparent: material.transparent,
+            opacity: material.opacity,
+            depthWrite: material.depthWrite,
+          });
+          const transparent = reveal < 0.999 || original.transparent;
           if (material.transparent !== transparent) {
             material.transparent = transparent;
             material.needsUpdate = true;
           }
-          material.opacity = reveal;
-          material.depthWrite = reveal > 0.95;
+          material.opacity = reveal * original.opacity;
+          material.depthWrite = reveal > 0.95 && original.depthWrite;
         });
       });
       lastOpacity.current = reveal;
@@ -146,18 +164,11 @@ function Choreography({
       <mesh
         ref={sculpture}
         position={[1.5, 1.95, -0.5]}
-        rotation={[0.25, 0, -0.35]}
+        rotation={[0, -0.2, 0]}
         scale={1.9}
         castShadow
       >
-        <torusKnotGeometry args={[0.46, 0.14, 144, 20]} />
-        <meshPhysicalMaterial
-          color="#9ba19f"
-          metalness={0.9}
-          roughness={0.22}
-          clearcoat={0.8}
-          clearcoatRoughness={0.16}
-        />
+        <RibbonSculpture />
       </mesh>
     </>
   );
