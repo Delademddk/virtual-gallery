@@ -23,7 +23,11 @@ const clamp = (value: number) => Math.max(0, Math.min(1, value));
 
 export default function Intro() {
   const section = useRef<HTMLElement>(null);
-  const [progress, setProgress] = useState(0);
+  const progressRef = useRef(0);
+  const invalidateRef = useRef<(() => void) | null>(null);
+  const reducedRef = useRef(false);
+  const failedRef = useRef(false);
+  const [chapter, setChapter] = useState(0);
   const [visible, setVisible] = useState(true);
   const [tabVisible, setTabVisible] = useState(true);
   const [reduced, setReduced] = useState(false);
@@ -34,6 +38,8 @@ export default function Intro() {
     setFailed(true);
     setReady(true);
   }, []);
+  reducedRef.current = reduced;
+  failedRef.current = failed;
 
   useEffect(() => {
     const media = matchMedia("(prefers-reduced-motion: reduce)");
@@ -45,15 +51,39 @@ export default function Intro() {
     media.addEventListener("change", preference);
     document.addEventListener("visibilitychange", visibility);
     let frame = 0;
+    let paintedChapter = -1;
     const update = () => {
       if (frame) return;
       frame = requestAnimationFrame(() => {
         frame = 0;
-        const bounds = section.current?.getBoundingClientRect();
-        if (bounds)
-          setProgress(
-            clamp(-bounds.top / Math.max(1, bounds.height - innerHeight)),
-          );
+        const node = section.current;
+        const bounds = node?.getBoundingClientRect();
+        if (!node || !bounds) return;
+        const raw = clamp(
+          -bounds.top / Math.max(1, bounds.height - innerHeight),
+        );
+        const value = reducedRef.current || failedRef.current ? 1 : raw;
+        progressRef.current = value;
+        const reveal = clamp((value - 0.57) / 0.38);
+        node.style.setProperty("--reveal", reveal.toFixed(4));
+        node.style.setProperty(
+          "--glyph-motion",
+          (reducedRef.current ? 0 : Math.sin(value * Math.PI)).toFixed(4),
+        );
+        node.style.setProperty(
+          "--intro-ink",
+          `rgb(${Math.round(239 - reveal * 217)},${Math.round(239 - reveal * 216)},${Math.round(232 - reveal * 212)})`,
+        );
+        node.style.setProperty(
+          "--intro-muted",
+          `rgb(${Math.round(180 - reveal * 94)},${Math.round(185 - reveal * 96)},${Math.round(178 - reveal * 96)})`,
+        );
+        const nextChapter = value < 0.28 ? 0 : value < 0.66 ? 1 : 2;
+        if (nextChapter !== paintedChapter) {
+          paintedChapter = nextChapter;
+          setChapter(nextChapter);
+        }
+        invalidateRef.current?.();
       });
     };
     const observer = new IntersectionObserver(([entry]) =>
@@ -73,16 +103,28 @@ export default function Intro() {
     };
   }, []);
 
-  const p = reduced || failed ? 1 : progress;
-  const reveal = clamp((p - 0.57) / 0.38);
+  useEffect(() => {
+    if (!reduced && !failed) return;
+    progressRef.current = 1;
+    setChapter(2);
+    const node = section.current;
+    if (node) {
+      node.style.setProperty("--reveal", "1");
+      node.style.setProperty("--glyph-motion", "0");
+      node.style.setProperty("--intro-ink", "rgb(22,23,20)");
+      node.style.setProperty("--intro-muted", "rgb(86,89,82)");
+    }
+    invalidateRef.current?.();
+  }, [reduced, failed]);
+
   const statement =
-    p < 0.28 ? (
+    chapter === 0 ? (
       <>
         Art, beyond
         <br />
         the frame.
       </>
-    ) : p < 0.66 ? (
+    ) : chapter === 1 ? (
       <>
         Stories with
         <br />
@@ -95,19 +137,12 @@ export default function Intro() {
         perspective.
       </>
     );
-  const styles = {
-    "--reveal": reveal,
-    "--glyph-motion": reduced ? 0 : Math.sin(p * Math.PI),
-    "--intro-ink": `rgb(${Math.round(239 - reveal * 217)},${Math.round(239 - reveal * 216)},${Math.round(232 - reveal * 212)})`,
-    "--intro-muted": `rgb(${Math.round(180 - reveal * 94)},${Math.round(185 - reveal * 96)},${Math.round(178 - reveal * 96)})`,
-  } as CSSProperties;
 
   return (
     <section
       id="top"
       ref={section}
       className={`cinematic-intro ${reduced ? "cinematic-still" : ""}`}
-      style={styles}
       aria-label="AZANIA sculpture and gallery introduction"
     >
       <div className="cinematic-stage">
@@ -116,7 +151,8 @@ export default function Intro() {
             <img src="/images/gallery-interior.jpg" alt="" />
           ) : (
             <Scene
-              progress={p}
+              progressRef={progressRef}
+              invalidateRef={invalidateRef}
               active={visible && tabVisible}
               reduced={reduced}
               onReady={onReady}
@@ -160,10 +196,7 @@ export default function Intro() {
         <Link href="/gallery" className="cinematic-mobile-entry">
           Enter gallery <ArrowUpRight size={19} />
         </Link>
-        <span
-          className="cinematic-object-label"
-          style={{ opacity: 1 - reveal }}
-        >
+        <span className="cinematic-object-label">
           FORM STUDY / 001
           <br />
           <span>Light. Material. Perspective.</span>
@@ -178,9 +211,9 @@ export default function Intro() {
             </span>
           </a>
           <span className="cinematic-chapter">
-            {p < 0.28
+            {chapter === 0
               ? "01 / FORM"
-              : p < 0.66
+              : chapter === 1
                 ? "02 / PERSPECTIVE"
                 : "03 / THE GALLERY"}
           </span>

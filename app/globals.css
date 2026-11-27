@@ -1097,6 +1097,7 @@ img {
   letter-spacing: 1px;
   text-align: right;
   pointer-events: none;
+  opacity: calc(1 - var(--reveal, 0));
 }
 .cinematic-object-label > span {
   font-size: 11px;
@@ -1271,12 +1272,10 @@ img {
   from {
     opacity: 0;
     transform: translateY(75%) rotateX(-80deg);
-    filter: blur(8px);
   }
   to {
     opacity: 1;
     transform: translateY(0) rotateX(0);
-    filter: blur(0);
   }
 }
 .collection-choreography {

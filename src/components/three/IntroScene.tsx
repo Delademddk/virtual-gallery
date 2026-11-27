@@ -1,15 +1,25 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef } from "react";
+import {
+  Suspense,
+  startTransition,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import RibbonSculpture from "./RibbonSculpture";
 import { Environment, Lightformer } from "@react-three/drei";
 import * as THREE from "three";
+import { LOCAL_ASSETS } from "@/lib/assets";
 import {
   SceneBoundary,
   SceneContents,
   galleryView,
   galleryTarget,
+  preloadIntroRoom,
 } from "./GalleryScene";
 
 function Ready({ onReady }: { onReady: () => void }) {
@@ -18,19 +28,21 @@ function Ready({ onReady }: { onReady: () => void }) {
 }
 
 function Choreography({
-  progress,
+  progressRef,
   reduced,
 }: {
-  progress: number;
+  progressRef: RefObject<number>;
   reduced: boolean;
 }) {
-  const { camera, scene, size } = useThree();
+  const { camera, scene, size, invalidate } = useThree();
   const sculpture = useRef<THREE.Mesh>(null);
   const room = useRef<THREE.Group>(null);
   const ambient = useRef<THREE.AmbientLight>(null);
   const daylight = useRef<THREE.DirectionalLight>(null);
-  const smoothed = useRef(reduced ? 1 : progress);
+  const smoothed = useRef(reduced ? 1 : progressRef.current);
   const lastOpacity = useRef(-1);
+  const roomRequested = useRef(reduced);
+  const [showRoom, setShowRoom] = useState(reduced);
   const vectors = useMemo(
     () => ({
       position: new THREE.Vector3(),
@@ -43,15 +55,20 @@ function Choreography({
   );
 
   useFrame((_, delta) => {
+    const target = reduced ? 1 : progressRef.current;
     smoothed.current = reduced
       ? 1
       : THREE.MathUtils.damp(
           smoothed.current,
-          progress,
+          target,
           7,
           Math.min(delta, 0.1),
         );
     const p = smoothed.current;
+    if (!roomRequested.current && p > 0.48) {
+      roomRequested.current = true;
+      startTransition(() => setShowRoom(true));
+    }
     const reveal = THREE.MathUtils.smoothstep(p, 0.57, 0.95);
     const mobile = size.width < 600;
     vectors.position.set(
@@ -89,35 +106,45 @@ function Choreography({
     }
     if (ambient.current)
       ambient.current.intensity = THREE.MathUtils.lerp(0.13, 2.1, reveal);
-    if (daylight.current)
+    if (daylight.current) {
       daylight.current.intensity = THREE.MathUtils.lerp(0.2, 3, reveal);
-    if (room.current && Math.abs(lastOpacity.current - reveal) > 0.001) {
-      room.current.visible = reveal > 0.001;
-      room.current.traverse((node) => {
-        if (node instanceof THREE.Light) {
-          node.intensity = node.userData.azaniaBaseIntensity * reveal;
-        }
-        if (!(node instanceof THREE.Mesh)) return;
-        const materials = Array.isArray(node.material)
-          ? node.material
-          : [node.material];
-        materials.forEach((material) => {
-          const original = (material.userData.azaniaFade ??= {
-            transparent: material.transparent,
-            opacity: material.opacity,
-            depthWrite: material.depthWrite,
-          });
-          const transparent = reveal < 0.999 || original.transparent;
-          if (material.transparent !== transparent) {
-            material.transparent = transparent;
-            material.needsUpdate = true;
-          }
-          material.opacity = reveal * original.opacity;
-          material.depthWrite = reveal > 0.95 && original.depthWrite;
-        });
-      });
-      lastOpacity.current = reveal;
+      const cast = reveal > 0.55;
+      if (daylight.current.castShadow !== cast) daylight.current.castShadow = cast;
     }
+    if (room.current) {
+      const visibleRoom = reveal > 0.02;
+      if (room.current.visible !== visibleRoom) room.current.visible = visibleRoom;
+      const bucket = Math.round(reveal * 32) / 32;
+      if (visibleRoom && bucket !== lastOpacity.current) {
+        let meshes = 0;
+        room.current.traverse((node) => {
+          if (node instanceof THREE.Light) {
+            node.intensity = node.userData.azaniaBaseIntensity * reveal;
+          }
+          if (!(node instanceof THREE.Mesh)) return;
+          meshes += 1;
+          const materials = Array.isArray(node.material)
+            ? node.material
+            : [node.material];
+          materials.forEach((material) => {
+            const original = (material.userData.azaniaFade ??= {
+              transparent: material.transparent,
+              opacity: material.opacity,
+              depthWrite: material.depthWrite,
+            });
+            const transparent = reveal < 0.98 || original.transparent;
+            if (material.transparent !== transparent) {
+              material.transparent = transparent;
+              material.needsUpdate = true;
+            }
+            material.opacity = reveal * original.opacity;
+            material.depthWrite = reveal > 0.95 && original.depthWrite;
+          });
+        });
+        if (meshes > 0) lastOpacity.current = bucket;
+      }
+    }
+    if (Math.abs(smoothed.current - target) > 0.0006) invalidate();
   });
 
   return (
@@ -127,8 +154,8 @@ function Choreography({
         ref={daylight}
         position={[-3, 8, 3]}
         intensity={0.2}
-        castShadow
-        shadow-mapSize={[1024, 1024]}
+        castShadow={false}
+        shadow-mapSize={[512, 512]}
         shadow-camera-left={-12}
         shadow-camera-right={12}
         shadow-camera-top={10}
@@ -158,9 +185,16 @@ function Choreography({
           intensity={2}
         />
       </Environment>
-      <group ref={room} visible={false}>
-        <SceneContents showSculpture={false} />
-      </group>
+      {showRoom && (
+        <Suspense fallback={null}>
+          <group ref={room} visible={false}>
+            <SceneContents
+              showSculpture={false}
+              modelUrl={LOCAL_ASSETS.gallery}
+            />
+          </group>
+        </Suspense>
+      )}
       <mesh
         ref={sculpture}
         position={[1.5, 1.95, -0.5]}
@@ -175,26 +209,45 @@ function Choreography({
 }
 
 export default function IntroScene({
-  progress,
+  progressRef,
+  invalidateRef,
   active,
   reduced,
   onReady,
   onFailure,
 }: {
-  progress: number;
+  progressRef: RefObject<number>;
+  invalidateRef: RefObject<(() => void) | null>;
   active: boolean;
   reduced: boolean;
   onReady: () => void;
   onFailure: () => void;
 }) {
+  useEffect(() => {
+    const timer = window.setTimeout(() => preloadIntroRoom(), 700);
+    return () => window.clearTimeout(timer);
+  }, []);
+  useEffect(() => {
+    if (active) invalidateRef.current?.();
+  }, [active, invalidateRef]);
+
   return (
     <SceneBoundary onFailure={onFailure}>
       <Canvas
         shadows
-        dpr={[1, 1.5]}
-        frameloop={active ? "always" : "never"}
+        dpr={[1, 1.25]}
+        frameloop={active ? "demand" : "never"}
         camera={{ position: [1.5, 2.2, 4.7], fov: 50, near: 0.1, far: 80 }}
-        gl={{ antialias: true, alpha: false }}
+        gl={{
+          antialias: true,
+          alpha: false,
+          powerPreference: "high-performance",
+          stencil: false,
+        }}
+        onCreated={(state) => {
+          invalidateRef.current = () => state.invalidate();
+          state.invalidate();
+        }}
         fallback={
           <p>
             AZANIA sculpture and gallery introduction.{" "}
@@ -204,7 +257,7 @@ export default function IntroScene({
       >
         <color attach="background" args={["#080a09"]} />
         <Suspense fallback={null}>
-          <Choreography progress={progress} reduced={reduced} />
+          <Choreography progressRef={progressRef} reduced={reduced} />
           <Ready onReady={onReady} />
         </Suspense>
       </Canvas>

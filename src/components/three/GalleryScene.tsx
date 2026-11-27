@@ -37,8 +37,8 @@ class GalleryAssetLoader extends GLTFLoader {
 export const galleryView: [number, number, number] = [2.7, 2.8, 6.6];
 export const galleryTarget: [number, number, number] = [-1.5, 2, -3];
 
-function GalleryModel() {
-  const { scene } = useLoader(GalleryAssetLoader, ASSETS.gallery);
+function GalleryModel({ url = ASSETS.gallery }: { url?: string }) {
+  const { scene } = useLoader(GalleryAssetLoader, url);
   const model = useMemo(() => {
     const clone = scene.clone(true);
     clone.traverse((node) => {
@@ -117,16 +117,22 @@ function FramedStudy({
     </group>
   );
 }
+export function preloadIntroRoom() {
+  useLoader.preload(GalleryAssetLoader, LOCAL_ASSETS.gallery);
+}
+
 export function SceneContents({
   onSelect,
   showSculpture = true,
+  modelUrl = ASSETS.gallery,
 }: {
   onSelect?: (index: number) => void;
   showSculpture?: boolean;
+  modelUrl?: string;
 }) {
   return (
     <>
-      <GalleryModel />
+      <GalleryModel url={modelUrl} />
       <FramedStudy
         index={0}
         position={[-13, 2.25, -7.92]}
